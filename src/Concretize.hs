@@ -608,7 +608,7 @@ del xobj deleters = xobj { info = setDeletersOnInfo (info xobj) deleters }
 
 -- | To keep track of the deleters when recursively walking the form.
 data MemState = MemState
-                { memStateDeleters :: Set.Set Deleter
+                { memStateDeleters :: Set.Set Deleter -- Set of alive variables that has to be deleted at end of scope, unless given away
                 , memStateDeps :: [XObj]
                 } deriving Show
 

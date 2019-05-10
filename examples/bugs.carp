@@ -3,7 +3,7 @@
 (Debug.sanitize-addresses)
 (Project.config "print-ast" true)
 
-;; This shouldn't compile:
+;; ;; This shouldn't compile:
 ;; (defn faulty-repeat [n inpt]
 ;;     (let [str ""]
 ;;       (do
@@ -22,12 +22,12 @@
 ;;         _ (S.set-f s @"bye")]
 ;;     (IO.println r)))
 
-;; ;; Dangling reference to variable.
-;; (defn main []
-;;   (let [s @"hello"
-;;         r &s]
-;;     (do (String.delete s)
-;;         (IO.println r))))
+;; Dangling reference to variable.
+(defn main []
+  (let [s @"hello"
+        r &s]
+    (do (String.delete s)
+        (IO.println r))))
 
 ;; ;; This crashes the compiler:
 ;; (defn x [a] (the Inthdfdf a))
@@ -108,16 +108,16 @@
 ;;   (let [g f]
 ;;     (fn [] (Int.+ (g 1) 12345))))
 
-(def g @"")
+;; (def g @"")
 
-(defmodule Blah
-  (def s @"")
-  (defn f []
-    (let [t @""]
-      (do
-        (set! g @"C")
-        (set! t @"A")
-        (set! s @"B")))))
+;; (defmodule Blah
+;;   (def s @"")
+;;   (defn f []
+;;     (let [t @""]
+;;       (do
+;;         (set! g @"C")
+;;         (set! t @"A")
+;;         (set! s @"B")))))
 
-(defn main []
-  (Blah.f))
+;; (defn main []
+;;   (Blah.f))
