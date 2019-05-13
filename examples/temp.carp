@@ -12,9 +12,20 @@
 ;; (def b (Aha.init "bleh"))
 
 ;; Refs in sumtypes
-(def x (Maybe.Just "Heya"))
+;;(def x (Maybe.Just "Heya"))
 
 ;; (defn f []
 ;;   (match x
 ;;     (Maybe.Just a)  a
 ;;     (Maybe.Nothing) 0))
+
+(deftype Thing [x String])
+
+;; lifetimes : (Fn [(Ref Thing)] (Ref String))
+(defn lifetimes [thing]
+  (Thing.x thing))
+
+(defn main []
+  (let [t (Thing.init @"Hello")
+        s-ref (lifetimes &t)]
+    ))
