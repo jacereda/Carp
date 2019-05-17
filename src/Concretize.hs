@@ -359,8 +359,12 @@ concretizeType typeEnv genericStructTy@(StructTy name _) =
       error ("Non-deftype found in type env: " ++ show x)
     Nothing ->
       Right []
-concretizeType env (RefTy rt) =
-  concretizeType env rt
+concretizeType env (RefTy rt lt) =
+  do okInnerTyDeps <- concretizeType env rt
+     okLifetimeDeps <- case lt of
+                         NoLifetime -> Right []
+                         LifetimeVar v -> concretizeType env v
+     return (okInnerTyDeps ++ okLifetimeDeps)
 concretizeType env (PointerTy pt) =
   concretizeType env pt
 concretizeType _ t =
@@ -537,21 +541,21 @@ depsForDeleteFunc typeEnv env t =
 depsForCopyFunc :: TypeEnv -> Env -> Ty -> [XObj]
 depsForCopyFunc typeEnv env t =
   if isManaged typeEnv t
-  then depsOfPolymorphicFunction typeEnv env [] "copy" (FuncTy [RefTy t] t)
+  then depsOfPolymorphicFunction typeEnv env [] "copy" (FuncTy [RefTy t NoLifetime] t)
   else []
 
 -- | Helper for finding the 'str' function for a type.
 depsForPrnFunc :: TypeEnv -> Env -> Ty -> [XObj]
 depsForPrnFunc typeEnv env t =
   if isManaged typeEnv t
-  then depsOfPolymorphicFunction typeEnv env [] "prn" (FuncTy [RefTy t] StringTy)
+  then depsOfPolymorphicFunction typeEnv env [] "prn" (FuncTy [RefTy t NoLifetime] StringTy)
   else depsOfPolymorphicFunction typeEnv env [] "prn" (FuncTy [t] StringTy)
 
 -- | The type of a type's str function.
 typesStrFunctionType :: TypeEnv -> Ty -> Ty
 typesStrFunctionType typeEnv memberType =
   if isManaged typeEnv memberType
-  then FuncTy [RefTy memberType] StringTy
+  then FuncTy [RefTy memberType NoLifetime] StringTy
   else FuncTy [memberType] StringTy
 
 -- | The various results when trying to find a function using 'findFunctionForMember'.
@@ -653,7 +657,7 @@ manageMemory typeEnv globalEnv root =
             [defn@(XObj Defn _ _), nameSymbol@(XObj (Sym _ _) _ _), args@(XObj (Arr argList) _ _), body] ->
               let Just funcTy@(FuncTy _ defnReturnType) = t
               in case defnReturnType of
-                   RefTy _ ->
+                   RefTy _ _ ->
                      return (Left (FunctionsCantReturnRefTy xobj funcTy))
                    _ ->
                      do mapM_ manage argList
@@ -686,7 +690,7 @@ manageMemory typeEnv globalEnv root =
             [letExpr@(XObj Let _ _), XObj (Arr bindings) bindi bindt, body] ->
               let Just letReturnType = t
               in case letReturnType of
-                RefTy _ ->
+                RefTy _ _ ->
                   return (Left (LetCantReturnRefTy xobj letReturnType))
                 _ ->
                   do MemState preDeleters _ <- get
@@ -1104,7 +1108,7 @@ suffixTyVars suffix t =
     FuncTy argTys retTy -> FuncTy (map (suffixTyVars suffix) argTys) (suffixTyVars suffix retTy)
     StructTy name tyArgs -> StructTy name (fmap (suffixTyVars suffix) tyArgs)
     PointerTy x -> PointerTy (suffixTyVars suffix x)
-    RefTy x -> RefTy (suffixTyVars suffix x)
+    RefTy x lt -> RefTy (suffixTyVars suffix x) (mapOverLifetime (suffixTyVars suffix) lt)
     _ -> t
 
 isGlobalFunc :: XObj -> Bool
@@ -1159,7 +1163,7 @@ memberDeletion = memberDeletionGeneral "."
 concreteCopy :: TypeEnv -> Env -> [(String, Ty)] -> Template
 concreteCopy typeEnv env memberPairs =
   Template
-   (FuncTy [RefTy (VarTy "p")] (VarTy "p"))
+   (FuncTy [RefTy (VarTy "p") NoLifetime] (VarTy "p"))
    (const (toTemplate "$p $NAME($p* pRef)"))
    (const (tokensForCopy typeEnv env memberPairs))
    (\_ -> concatMap (depsOfPolymorphicFunction typeEnv env [] "copy" . typesCopyFunctionType)

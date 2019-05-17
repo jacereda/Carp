@@ -123,14 +123,14 @@ binderForStrOrPrn typeEnv env insidePath structTy@(StructTy typeName _) cases st
 -- | The template for the 'str' function for a concrete deftype.
 concreteStr :: TypeEnv -> Env -> [String] -> Ty -> [SumtypeCase] -> String -> (String, Binder)
 concreteStr typeEnv env insidePath concreteStructTy@(StructTy typeName _) cases strOrPrn =
-  instanceBinder (SymPath insidePath strOrPrn) (FuncTy [RefTy concreteStructTy] StringTy) template
+  instanceBinder (SymPath insidePath strOrPrn) (FuncTy [RefTy concreteStructTy NoLifetime] StringTy) template
   where template =
           Template
-            (FuncTy [RefTy concreteStructTy] StringTy)
-            (\(FuncTy [RefTy structTy] StringTy) -> toTemplate $ "String $NAME(" ++ tyToCLambdaFix structTy ++ " *p)")
-            (\(FuncTy [RefTy structTy@(StructTy _ concreteMemberTys)] StringTy) ->
+            (FuncTy [RefTy concreteStructTy NoLifetime] StringTy)
+            (\(FuncTy [RefTy structTy _] StringTy) -> toTemplate $ "String $NAME(" ++ tyToCLambdaFix structTy ++ " *p)")
+            (\(FuncTy [RefTy structTy@(StructTy _ concreteMemberTys) _] StringTy) ->
                 tokensForStr typeEnv env typeName cases concreteStructTy)
-            (\ft@(FuncTy [RefTy structTy@(StructTy _ concreteMemberTys)] StringTy) ->
+            (\ft@(FuncTy [RefTy structTy@(StructTy _ concreteMemberTys) _] StringTy) ->
                concatMap (depsOfPolymorphicFunction typeEnv env [] "prn" . typesStrFunctionType typeEnv)
                           (filter (\t -> (not . isExternalType typeEnv) t && (not . isFullyGenericType) t) (concatMap caseTys cases))
             )
@@ -140,18 +140,18 @@ genericStr :: [String] -> Ty -> [SumtypeCase] -> String -> (String, Binder)
 genericStr insidePath originalStructTy@(StructTy typeName varTys) cases strOrPrn =
   defineTypeParameterizedTemplate templateCreator path t
   where path = SymPath insidePath strOrPrn
-        t = FuncTy [RefTy originalStructTy] StringTy
+        t = FuncTy [RefTy originalStructTy NoLifetime] StringTy
         templateCreator = TemplateCreator $
           \typeEnv env ->
             Template
             t
-            (\(FuncTy [RefTy concreteStructTy] StringTy) ->
+            (\(FuncTy [RefTy concreteStructTy _] StringTy) ->
                toTemplate $ "String $NAME(" ++ tyToCLambdaFix concreteStructTy ++ " *p)")
-            (\(FuncTy [RefTy concreteStructTy@(StructTy _ concreteMemberTys)] StringTy) ->
+            (\(FuncTy [RefTy concreteStructTy@(StructTy _ concreteMemberTys) _] StringTy) ->
                let mappings = unifySignatures originalStructTy concreteStructTy
                    correctedCases = replaceGenericTypesOnCases mappings cases
                in tokensForStr typeEnv env typeName correctedCases concreteStructTy)
-            (\ft@(FuncTy [RefTy concreteStructTy@(StructTy _ concreteMemberTys)] StringTy) ->
+            (\ft@(FuncTy [RefTy concreteStructTy@(StructTy _ concreteMemberTys) _] StringTy) ->
                let mappings = unifySignatures originalStructTy concreteStructTy
                    correctedCases = replaceGenericTypesOnCases mappings cases
                    tys = filter (\t -> (not . isExternalType typeEnv) t && (not . isFullyGenericType) t) (concatMap caseTys correctedCases)
@@ -276,19 +276,19 @@ binderForCopy typeEnv env insidePath structTy@(StructTy typeName _) cases =
 -- | The template for the 'copy' function of a generic sumtype.
 genericSumtypeCopy :: [String] -> Ty -> [SumtypeCase] -> (String, Binder)
 genericSumtypeCopy pathStrings originalStructTy cases =
-  defineTypeParameterizedTemplate templateCreator path (FuncTy [RefTy originalStructTy] originalStructTy)
+  defineTypeParameterizedTemplate templateCreator path (FuncTy [RefTy originalStructTy NoLifetime] originalStructTy)
   where path = SymPath pathStrings "copy"
-        t = FuncTy [RefTy (VarTy "p")] (VarTy "p")
+        t = FuncTy [RefTy (VarTy "p") NoLifetime] (VarTy "p")
         templateCreator = TemplateCreator $
           \typeEnv env ->
             Template
             t
             (const (toTemplate "$p $NAME($p* pRef)"))
-            (\(FuncTy [RefTy concreteStructTy] _) ->
+            (\(FuncTy [RefTy concreteStructTy _] _) ->
                let mappings = unifySignatures originalStructTy concreteStructTy
                    correctedCases = replaceGenericTypesOnCases mappings cases
                in  tokensForSumtypeCopy typeEnv env concreteStructTy correctedCases)
-            (\(FuncTy [RefTy concreteStructTy] _) ->
+            (\(FuncTy [RefTy concreteStructTy _] _) ->
                let mappings = unifySignatures originalStructTy concreteStructTy
                    correctedCases = replaceGenericTypesOnCases mappings cases
                in  if isTypeGeneric concreteStructTy
@@ -299,9 +299,9 @@ genericSumtypeCopy pathStrings originalStructTy cases =
 -- | The template for the 'copy' function of a concrete sumtype
 concreteSumtypeCopy :: [String] -> TypeEnv -> Env -> Ty -> [SumtypeCase] -> (String, Binder)
 concreteSumtypeCopy insidePath typeEnv env structTy cases =
-  instanceBinder (SymPath insidePath "copy") (FuncTy [RefTy structTy] structTy) template
+  instanceBinder (SymPath insidePath "copy") (FuncTy [RefTy structTy NoLifetime] structTy) template
   where template = Template
-                    (FuncTy [RefTy (VarTy "p")] (VarTy "p"))
+                    (FuncTy [RefTy (VarTy "p") NoLifetime] (VarTy "p"))
                     (const (toTemplate "$p $NAME($p* pRef)"))
                     (const (tokensForSumtypeCopy typeEnv env structTy cases))
                     (\_ -> concatMap (depsOfPolymorphicFunction typeEnv env [] "copy" . typesCopyFunctionType)

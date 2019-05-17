@@ -172,7 +172,8 @@ genConstraints typeEnv root = fmap sort (gen root)
                              do insideValueConstraints <- gen value
                                 xobjType <- toEither (ty xobj) (ExpressionMissingType xobj)
                                 valueType <- toEither (ty value) (ExpressionMissingType value)
-                                let theTheConstraint = Constraint (RefTy xobjType) valueType xobj value xobj OrdDeref
+                                -- TODO: Is it correct to use 'NoLifetime' here?
+                                let theTheConstraint = Constraint (RefTy xobjType NoLifetime) valueType xobj value xobj OrdDeref
                                 return (theTheConstraint : insideValueConstraints)
 
                            -- Break

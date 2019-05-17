@@ -396,7 +396,9 @@ replaceGenericTypeSymbols _ xobj = xobj
 tyToXObj :: Ty -> XObj
 tyToXObj (StructTy n []) = XObj (Sym (SymPath [] n) Symbol) Nothing Nothing
 tyToXObj (StructTy n vs) = XObj (Lst (XObj (Sym (SymPath [] n) Symbol) Nothing Nothing : map tyToXObj vs)) Nothing Nothing
-tyToXObj (RefTy t) = XObj (Lst [XObj (Sym (SymPath [] "Ref") Symbol) Nothing Nothing, tyToXObj t]) Nothing Nothing
+tyToXObj (RefTy t NoLifetime) = XObj (Lst [XObj (Sym (SymPath [] "Ref") Symbol) Nothing Nothing, tyToXObj t]) Nothing Nothing
+tyToXObj (RefTy t (LifetimeVar v)) =
+  XObj (Lst [XObj (Sym (SymPath [] "Ref") Symbol) Nothing Nothing, tyToXObj t, tyToXObj v]) Nothing Nothing
 tyToXObj (PointerTy t) = XObj (Lst [XObj (Sym (SymPath [] "Ptr") Symbol) Nothing Nothing, tyToXObj t]) Nothing Nothing
 tyToXObj (FuncTy argTys returnTy) = XObj (Lst [XObj (Sym (SymPath [] "Fn") Symbol) Nothing Nothing, XObj (Arr (map tyToXObj argTys)) Nothing Nothing, tyToXObj returnTy]) Nothing Nothing
 tyToXObj x = XObj (Sym (SymPath [] (show x)) Symbol) Nothing Nothing
@@ -590,10 +592,14 @@ xobjToTy (XObj (Lst (XObj (Sym (SymPath _ "Ptr") _) _ _ : _)) _ _) =
   Nothing
 xobjToTy (XObj (Lst [XObj (Sym (SymPath _ "Ref") _) _ _, innerTy]) _ _) =
   do okInnerTy <- xobjToTy innerTy
-     return (RefTy okInnerTy)
+     return (RefTy okInnerTy NoLifetime)
+xobjToTy (XObj (Lst [XObj (Sym (SymPath _ "Ref") _) _ _, innerTy, lifetime]) _ _) =
+  do okInnerTy <- xobjToTy innerTy
+     okLifetime <- xobjToTy lifetime
+     return (RefTy okInnerTy (LifetimeVar okLifetime))
 xobjToTy (XObj (Lst [XObj Ref i t, innerTy]) _ _) = -- This enables parsing of '&'
   do okInnerTy <- xobjToTy innerTy
-     return (RefTy okInnerTy)
+     return (RefTy okInnerTy NoLifetime)
 xobjToTy (XObj (Lst (XObj (Sym (SymPath _ "Ref") _) _ _ : _)) _ _) =
   Nothing
 xobjToTy (XObj (Lst [XObj (Sym (SymPath path "╬╗") _) fi ft, XObj (Arr argTys) ai at, retTy]) i t) =
@@ -641,7 +647,7 @@ polymorphicSuffix signature actualType =
                                                                  return (visitedArgs ++ visitedRets)
             (StructTy _ a, StructTy _ b) -> fmap concat (zipWithM visit a b)
             (PointerTy a, PointerTy b) -> visit a b
-            (RefTy a, RefTy b) -> visit a b
+            (RefTy a _, RefTy b _) -> visit a b
             (_, _) -> return []
 
 type VisitedTypes = [Ty]

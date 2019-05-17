@@ -1,4 +1,4 @@
-(Debug.sanitize-addresses)
+;;(Debug.sanitize-addresses)
 (Project.config "print-ast" true)
 
 ; (deftype JSON
@@ -19,13 +19,13 @@
 ;;     (Maybe.Just a)  a
 ;;     (Maybe.Nothing) 0))
 
-(deftype Thing [x String])
+(deftype Thing [x Int])
 
 ;; lifetimes : (Fn [(Ref Thing)] (Ref String))
 (defn lifetimes [thing]
   (Thing.x thing))
 
 (defn main []
-  (let [t (Thing.init @"Hello")
+  (let [t (Thing.init 12345)
         s-ref (lifetimes &t)]
     ))

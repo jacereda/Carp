@@ -45,7 +45,7 @@ assignTypes mappings root = visit root
 
 
 isArrayTypeOK :: Ty -> Bool
-isArrayTypeOK (StructTy "Array" [RefTy _]) = False -- An array containing refs!
+isArrayTypeOK (StructTy "Array" [RefTy _ _]) = False -- An array containing refs!
 isArrayTypeOK _ = True
 
 
@@ -64,8 +64,10 @@ typeVariablesInOrderOfAppearance (FuncTy argTys retTy) =
   concatMap typeVariablesInOrderOfAppearance argTys ++ typeVariablesInOrderOfAppearance retTy
 typeVariablesInOrderOfAppearance (StructTy _ typeArgs) =
   concatMap typeVariablesInOrderOfAppearance typeArgs
-typeVariablesInOrderOfAppearance (RefTy innerTy) =
+typeVariablesInOrderOfAppearance (RefTy innerTy NoLifetime) =
   typeVariablesInOrderOfAppearance innerTy
+typeVariablesInOrderOfAppearance (RefTy innerTy (LifetimeVar v)) =
+  typeVariablesInOrderOfAppearance innerTy ++ typeVariablesInOrderOfAppearance v
 typeVariablesInOrderOfAppearance (PointerTy innerTy) =
   typeVariablesInOrderOfAppearance innerTy
 typeVariablesInOrderOfAppearance t@(VarTy _) =
