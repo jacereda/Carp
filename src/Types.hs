@@ -261,8 +261,7 @@ areUnifiable (PointerTy a) (PointerTy b) = areUnifiable a b
 areUnifiable (PointerTy _) _ = False
 areUnifiable (RefTy a ltA) (RefTy b ltB) = areUnifiable a b && case (ltA, ltB) of
                                                                  (LifetimeVar ltvA, LifetimeVar ltvB) -> areUnifiable ltvA ltvB
-                                                                 (NoLifetime, NoLifetime) -> True
-                                                                 _ -> False
+                                                                 _ -> True -- At least one of the lifetimes is a NoLifetime, so it unifies
 areUnifiable (RefTy _ _) _ = False
 areUnifiable (FuncTy argTysA retTyA) (FuncTy argTysB retTyB)
   | length argTysA /= length argTysB = False

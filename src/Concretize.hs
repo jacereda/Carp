@@ -262,7 +262,7 @@ concretizeXObj allowAmbiguityRoot typeEnv rootEnv visitedDefinitions root =
               tys = map (typeFromPath env) interfacePaths
               tysToPathsDict = zip tys interfacePaths
           in  case filter (matchingSignature actualType) tysToPathsDict of
-                [] -> return $ -- (trace ("No matching signatures for interface lookup of " ++ name ++ " of type " ++ show actualType ++ " " ++ prettyInfoFromXObj xobj ++ ", options are:\n" ++ joinWith "\n" (map show tysToPathsDict))) $
+                [] -> return $ -- (trace ("No matching signatures for interface lookup of " ++ name ++ " of type " ++ show actualType ++ " " ++ prettyInfoFromXObj xobj ++ ", options are:\n" ++ joinWith "\n" (map show tysToPathsDict) ++ "\ninterface paths: " ++ show interfacePaths)) $
                                  if allowAmbig
                                  then Right xobj -- No exact match of types
                                  else Left (NoMatchingSignature xobj name actualType tysToPathsDict)
