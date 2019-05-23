@@ -21,11 +21,12 @@
 
 (deftype Thing [x Int])
 
-;; lifetimes : (Fn [(Ref Thing)] (Ref String))
+;; lifetimes : (Fn [(Ref Thing q)] (Ref String q))
 (defn lifetimes [thing]
   (Thing.x thing))
 
 (defn main []
   (let [t (Thing.init 12345)
-        s-ref (lifetimes &t)]
+        s-ref (lifetimes &t)] ;; &t : (Ref Thing main_let_scope_0)
+                              ;; s-ref : (Ref String main_let_scope_0)
     ))

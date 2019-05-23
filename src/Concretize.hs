@@ -656,8 +656,8 @@ manageMemory typeEnv globalEnv root =
             [defn@(XObj Defn _ _), nameSymbol@(XObj (Sym _ _) _ _), args@(XObj (Arr argList) _ _), body] ->
               let Just funcTy@(FuncTy _ defnReturnType) = t
               in case defnReturnType of
-                   RefTy _ _ ->
-                     return (Left (FunctionsCantReturnRefTy xobj funcTy))
+                   -- RefTy _ _ ->
+                   --   return (Left (FunctionsCantReturnRefTy xobj funcTy))
                    _ ->
                      do mapM_ manage argList
                         visitedBody <- visit  body
