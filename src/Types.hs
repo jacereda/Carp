@@ -27,6 +27,7 @@ import Util
 --import Debug.Trace
 
 data Lifetime = LifetimeVar Ty
+              | LifetimeValue String
               deriving (Show, Eq, Ord)
 
 mapOverLifetime f (LifetimeVar var) = LifetimeVar (f var)

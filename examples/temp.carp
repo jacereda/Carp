@@ -19,15 +19,28 @@
 ;;     (Maybe.Just a)  a
 ;;     (Maybe.Nothing) 0))
 
-(deftype Thing [x Int])
 
-;; lifetimes : (Fn [(Ref Thing q)] (Ref String q))
-(defn lifetimes [thing]
-  (Thing.x thing))
 
+;; (deftype Thing [x Int])
+
+;; ;; lifetimes : (Fn [(Ref Thing q)] (Ref String q))
+;; (defn lifetimes [thing]
+;;   (Thing.x thing))
+
+;; (defn main []
+;;   (let [t (Thing.init 12345)
+;;         s-ref (lifetimes &t)] ;; &t : (Ref Thing main_let_scope_0), s-ref : (Ref String main_let_scope_0)
+;;     (do (delete t)
+;;         (IO.println s-ref)) ;; Should detect that the s-ref is invalid here
+;;     ()))
+
+
+
+;; The most basic use of lifetimes:
 (defn main []
-  (let [t (Thing.init 12345)
-        s-ref (lifetimes &t)] ;; &t : (Ref Thing main_let_scope_0), s-ref : (Ref String main_let_scope_0)
-    (do (delete t)
-        (IO.println s-ref)) ;; Should detect that the s-ref is invalid here
-    ()))
+  (let [s @"Yo"
+        r &s]
+    (do
+      (delete s)
+      (println* r))
+    ))

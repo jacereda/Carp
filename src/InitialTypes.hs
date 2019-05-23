@@ -315,7 +315,7 @@ initialTypes typeEnv rootEnv root = evalState (visit rootEnv root) 0
                          let Just valueTy = ty okValue
                              Just ii = info value
                              identifierName = infoIdentifier ii
-                         return (XObj (Lst [refExpr, okValue]) i (Just (RefTy valueTy (LifetimeVar (VarTy ("lt" ++ show identifierName))))))
+                         return (XObj (Lst [refExpr, okValue]) i (Just (RefTy valueTy (LifetimeValue (getName value)))))
 
         -- Deref (error!)
         [XObj Deref _ _, value] ->

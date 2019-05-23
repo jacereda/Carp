@@ -636,6 +636,22 @@ manageMemory typeEnv globalEnv root =
             Arr _ -> visitArray xobj
             Str _ -> do manage xobj
                         return (Right xobj)
+            Sym _ _ -> visitSymbol xobj
+            _ -> return (Right xobj)
+
+        visitSymbol :: XObj -> State MemState (Either TypeError XObj)
+        visitSymbol xobj@(XObj (Sym path mode) _ (Just t)) =
+          case t of
+            RefTy r (LifetimeValue deleterValue) ->
+              do MemState deleters deps <- get
+                 let matchingValues = Set.toList $ Set.filter (\case
+                                                   ProperDeleter { deleterVariable = dv } -> dv == deleterValue
+                                                   FakeDeleter   { deleterVariable = dv } -> dv == deleterValue)
+                                                   deleters
+                 case matchingValues of
+                   [] ->  return (Left (GettingReferenceToUnownedValue xobj))
+                   [_] -> return (Right xobj)
+                   _ -> error "Too many variables with the same name in set."
             _ -> return (Right xobj)
 
         visitArray :: XObj -> State MemState (Either TypeError XObj)
