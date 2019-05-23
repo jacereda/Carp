@@ -125,11 +125,11 @@ binderForStrOrPrn typeEnv env insidePath structTy@(StructTy typeName _) cases st
 -- | The template for the 'str' function for a concrete deftype.
 concreteStr :: TypeEnv -> Env -> [String] -> Ty -> [SumtypeCase] -> String -> (String, Binder)
 concreteStr typeEnv env insidePath concreteStructTy@(StructTy typeName _) cases strOrPrn =
-  instanceBinder (SymPath insidePath strOrPrn) (FuncTy [RefTy concreteStructTy NoLifetime] StringTy) template doc
+  instanceBinder (SymPath insidePath strOrPrn) (FuncTy [RefTy concreteStructTy (LifetimeVar (VarTy "q"))] StringTy) template doc
   where doc = "converts a `" ++ typeName ++ "` to a string."
         template =
           Template
-            (FuncTy [RefTy concreteStructTy NoLifetime] StringTy)
+            (FuncTy [RefTy concreteStructTy (LifetimeVar (VarTy "q"))] StringTy)
             (\(FuncTy [RefTy structTy _] StringTy) -> toTemplate $ "String $NAME(" ++ tyToCLambdaFix structTy ++ " *p)")
             (\(FuncTy [RefTy structTy@(StructTy _ concreteMemberTys) _] StringTy) ->
                 tokensForStr typeEnv env typeName cases concreteStructTy)
@@ -143,7 +143,7 @@ genericStr :: [String] -> Ty -> [SumtypeCase] -> String -> (String, Binder)
 genericStr insidePath originalStructTy@(StructTy typeName varTys) cases strOrPrn =
   defineTypeParameterizedTemplate templateCreator path t docs
   where path = SymPath insidePath strOrPrn
-        t = FuncTy [RefTy originalStructTy NoLifetime] StringTy
+        t = FuncTy [RefTy originalStructTy (LifetimeVar (VarTy "q"))] StringTy
         docs = "stringifies a `" ++ show typeName ++ "`."
         templateCreator = TemplateCreator $
           \typeEnv env ->
@@ -282,9 +282,9 @@ binderForCopy typeEnv env insidePath structTy@(StructTy typeName _) cases =
 -- | The template for the 'copy' function of a generic sumtype.
 genericSumtypeCopy :: [String] -> Ty -> [SumtypeCase] -> (String, Binder)
 genericSumtypeCopy pathStrings originalStructTy cases =
-  defineTypeParameterizedTemplate templateCreator path (FuncTy [RefTy originalStructTy NoLifetime] originalStructTy) docs
+  defineTypeParameterizedTemplate templateCreator path (FuncTy [RefTy originalStructTy (LifetimeVar (VarTy "q"))] originalStructTy) docs
   where path = SymPath pathStrings "copy"
-        t = FuncTy [RefTy (VarTy "p") NoLifetime] (VarTy "p")
+        t = FuncTy [RefTy (VarTy "p") (LifetimeVar (VarTy "q"))] (VarTy "p")
         docs = "copies a `" ++ show originalStructTy ++ "`."
         templateCreator = TemplateCreator $
           \typeEnv env ->
@@ -306,10 +306,10 @@ genericSumtypeCopy pathStrings originalStructTy cases =
 -- | The template for the 'copy' function of a concrete sumtype
 concreteSumtypeCopy :: [String] -> TypeEnv -> Env -> Ty -> [SumtypeCase] -> (String, Binder)
 concreteSumtypeCopy insidePath typeEnv env structTy@(StructTy typeName _) cases =
-  instanceBinder (SymPath insidePath "copy") (FuncTy [RefTy structTy NoLifetime] structTy) template doc
+  instanceBinder (SymPath insidePath "copy") (FuncTy [RefTy structTy (LifetimeVar (VarTy "q"))] structTy) template doc
   where doc = "copies a `" ++ typeName ++ "`."
         template = Template
-                    (FuncTy [RefTy (VarTy "p") NoLifetime] (VarTy "p"))
+                    (FuncTy [RefTy (VarTy "p") (LifetimeVar (VarTy "q"))] (VarTy "p"))
                     (const (toTemplate "$p $NAME($p* pRef)"))
                     (const (tokensForSumtypeCopy typeEnv env structTy cases))
                     (\_ -> concatMap (depsOfPolymorphicFunction typeEnv env [] "copy" . typesCopyFunctionType)

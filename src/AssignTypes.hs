@@ -64,8 +64,6 @@ typeVariablesInOrderOfAppearance (FuncTy argTys retTy) =
   concatMap typeVariablesInOrderOfAppearance argTys ++ typeVariablesInOrderOfAppearance retTy
 typeVariablesInOrderOfAppearance (StructTy _ typeArgs) =
   concatMap typeVariablesInOrderOfAppearance typeArgs
-typeVariablesInOrderOfAppearance (RefTy innerTy NoLifetime) =
-  typeVariablesInOrderOfAppearance innerTy
 typeVariablesInOrderOfAppearance (RefTy innerTy (LifetimeVar v)) =
   typeVariablesInOrderOfAppearance innerTy ++ typeVariablesInOrderOfAppearance v
 typeVariablesInOrderOfAppearance (PointerTy innerTy) =

@@ -143,8 +143,6 @@ solveOneInternal mappings constraint =
             case (ltA, ltB) of
               (LifetimeVar ltvA, LifetimeVar ltvB) ->
                 solveOneInternal okMappings (Constraint ltvA ltvB i1 i2 ctx ord)
-              _ ->
-                return okMappings -- At least one is NoLifetime so it unifies with the other one
 
     -- Else
     Constraint aTy bTy _ _ _ _ ->

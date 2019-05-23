@@ -26,11 +26,9 @@ import Data.Maybe (fromMaybe)
 import Util
 --import Debug.Trace
 
-data Lifetime = NoLifetime
-              | LifetimeVar Ty
+data Lifetime = LifetimeVar Ty
               deriving (Show, Eq, Ord)
 
-mapOverLifetime f NoLifetime = NoLifetime
 mapOverLifetime f (LifetimeVar var) = LifetimeVar (f var)
 
 -- | Carp types.
@@ -88,11 +86,9 @@ instance Show Ty where
       StructTy _ _ -> listView
       FuncTy _ _ -> listView
       _ -> case lifetime of
-             NoLifetime -> "&" ++ show r
              LifetimeVar _  -> listView
     where listView = "(Ref " ++ show r ++ lt ++ ")"
           lt = case lifetime of
-                 NoLifetime -> ""
                  LifetimeVar var  -> " " ++ (show var)
   show MacroTy               = "Macro"
   show DynamicTy             = "Dynamic"
@@ -236,7 +232,6 @@ unifySignatures v t = Map.fromList (unify v t)
 
         unify (RefTy a ltA) (RefTy b ltB) = unify a b ++ case (ltA, ltB) of
                                                            (LifetimeVar ltvA, LifetimeVar ltvB) -> unify ltvA ltvB
-                                                           _ -> []
         unify a@(RefTy _ _) b = [] -- error ("Can't unify " ++ show a ++ " with " ++ show b)
 
         unify (FuncTy argTysA retTyA) (FuncTy argTysB retTyB) = let argToks = concat (zipWith unify argTysA argTysB)
@@ -261,7 +256,6 @@ areUnifiable (PointerTy a) (PointerTy b) = areUnifiable a b
 areUnifiable (PointerTy _) _ = False
 areUnifiable (RefTy a ltA) (RefTy b ltB) = areUnifiable a b && case (ltA, ltB) of
                                                                  (LifetimeVar ltvA, LifetimeVar ltvB) -> areUnifiable ltvA ltvB
-                                                                 _ -> True -- At least one of the lifetimes is a NoLifetime, so it unifies
 areUnifiable (RefTy _ _) _ = False
 areUnifiable (FuncTy argTysA retTyA) (FuncTy argTysB retTyB)
   | length argTysA /= length argTysB = False
@@ -284,13 +278,12 @@ replaceTyVars mappings t =
     (PointerTy x) -> PointerTy (replaceTyVars mappings x)
     (RefTy x y) -> RefTy (replaceTyVars mappings x) replacedLifetimes
       where replacedLifetimes = case y of
-                                  NoLifetime -> NoLifetime
                                   LifetimeVar v -> LifetimeVar (replaceTyVars mappings v)
     _ -> t
 
 -- | The type of a type's copying function.
 typesCopyFunctionType :: Ty -> Ty
-typesCopyFunctionType memberType = FuncTy [RefTy memberType NoLifetime] memberType
+typesCopyFunctionType memberType = FuncTy [RefTy memberType (LifetimeVar (VarTy "q"))] memberType
 
 -- | The type of a type's deleter function.
 typesDeleterFunctionType :: Ty -> Ty

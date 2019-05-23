@@ -7,7 +7,7 @@ import Lookup
 import Polymorphism
 
 memberInfo typeEnv memberTy =
-  let refOrNotRefType = if isManaged typeEnv memberTy then RefTy memberTy NoLifetime else memberTy
+  let refOrNotRefType = if isManaged typeEnv memberTy then RefTy memberTy (LifetimeVar (VarTy "what-to-call-this")) else memberTy
   in (refOrNotRefType, if isManaged typeEnv memberTy then "&" else "", FuncTy [refOrNotRefType] StringTy)
 
 -- | Generate C code for converting a member variable to a string and appending it to a buffer.

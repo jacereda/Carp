@@ -54,7 +54,6 @@ renameVarTys rootType = do n <- get
 
     rename (RefTy x y) = do x' <- rename x
                             y' <- case y of
-                                    NoLifetime -> return NoLifetime
                                     LifetimeVar v -> do v' <- (rename v)
                                                         return (LifetimeVar v')
                             return (RefTy x' y')
@@ -70,8 +69,10 @@ initialTypes typeEnv rootEnv root = evalState (visit rootEnv root) 0
     visit env xobj = case obj xobj of
                        (Num t _)          -> return (Right (xobj { ty = Just t }))
                        (Bol _)            -> return (Right (xobj { ty = Just BoolTy }))
-                       (Str _)            -> return (Right (xobj { ty = Just (RefTy StringTy NoLifetime) }))
-                       (Pattern _)        -> return (Right (xobj { ty = Just (RefTy PatternTy NoLifetime) }))
+                       (Str _)            -> do lt <- genVarTy
+                                                return (Right (xobj { ty = Just (RefTy StringTy (LifetimeVar lt)) }))
+                       (Pattern _)        -> do lt <- genVarTy
+                                                return (Right (xobj { ty = Just (RefTy PatternTy (LifetimeVar lt)) }))
                        (Chr _)            -> return (Right (xobj { ty = Just CharTy }))
                        Break              -> return (Right (xobj { ty = Just (FuncTy [] UnitTy)}))
                        (Command _)        -> return (Right (xobj { ty = Just DynamicTy }))
@@ -310,10 +311,11 @@ initialTypes typeEnv rootEnv root = evalState (visit rootEnv root) 0
         -- Ref
         [refExpr@(XObj Ref _ _), value] ->
           do visitedValue <- visit env value
-             lt <- genVarTy
              return $ do okValue <- visitedValue
                          let Just valueTy = ty okValue
-                         return (XObj (Lst [refExpr, okValue]) i (Just (RefTy valueTy (LifetimeVar lt))))
+                             Just ii = info value
+                             identifierName = infoIdentifier ii
+                         return (XObj (Lst [refExpr, okValue]) i (Just (RefTy valueTy (LifetimeVar (VarTy ("lt" ++ show identifierName))))))
 
         -- Deref (error!)
         [XObj Deref _ _, value] ->
@@ -366,7 +368,7 @@ initialTypes typeEnv rootEnv root = evalState (visit rootEnv root) 0
                 (Sym (SymPath _ name) _) ->
                   do visited <- visit env' expr
                      return (envAddBinding env' name . Binder emptyMeta <$> visited)
-                _ -> return (Left (InvalidLetBinding xobjs (sym, expr))) 
+                _ -> return (Left (InvalidLetBinding xobjs (sym, expr)))
 
     extendEnvWithParamList :: Env -> [XObj] -> State Integer Env
     extendEnvWithParamList env xobjs =

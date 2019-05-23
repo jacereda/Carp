@@ -362,7 +362,6 @@ concretizeType typeEnv genericStructTy@(StructTy name _) =
 concretizeType env (RefTy rt lt) =
   do okInnerTyDeps <- concretizeType env rt
      okLifetimeDeps <- case lt of
-                         NoLifetime -> Right []
                          LifetimeVar v -> concretizeType env v
      return (okInnerTyDeps ++ okLifetimeDeps)
 concretizeType env (PointerTy pt) =
@@ -541,21 +540,21 @@ depsForDeleteFunc typeEnv env t =
 depsForCopyFunc :: TypeEnv -> Env -> Ty -> [XObj]
 depsForCopyFunc typeEnv env t =
   if isManaged typeEnv t
-  then depsOfPolymorphicFunction typeEnv env [] "copy" (FuncTy [RefTy t NoLifetime] t)
+  then depsOfPolymorphicFunction typeEnv env [] "copy" (FuncTy [RefTy t (LifetimeVar (VarTy "q"))] t)
   else []
 
 -- | Helper for finding the 'str' function for a type.
 depsForPrnFunc :: TypeEnv -> Env -> Ty -> [XObj]
 depsForPrnFunc typeEnv env t =
   if isManaged typeEnv t
-  then depsOfPolymorphicFunction typeEnv env [] "prn" (FuncTy [RefTy t NoLifetime] StringTy)
+  then depsOfPolymorphicFunction typeEnv env [] "prn" (FuncTy [RefTy t (LifetimeVar (VarTy "q"))] StringTy)
   else depsOfPolymorphicFunction typeEnv env [] "prn" (FuncTy [t] StringTy)
 
 -- | The type of a type's str function.
 typesStrFunctionType :: TypeEnv -> Ty -> Ty
 typesStrFunctionType typeEnv memberType =
   if isManaged typeEnv memberType
-  then FuncTy [RefTy memberType NoLifetime] StringTy
+  then FuncTy [RefTy memberType (LifetimeVar (VarTy "q"))] StringTy
   else FuncTy [memberType] StringTy
 
 -- | The various results when trying to find a function using 'findFunctionForMember'.
@@ -1163,7 +1162,7 @@ memberDeletion = memberDeletionGeneral "."
 concreteCopy :: TypeEnv -> Env -> [(String, Ty)] -> Template
 concreteCopy typeEnv env memberPairs =
   Template
-   (FuncTy [RefTy (VarTy "p") NoLifetime] (VarTy "p"))
+   (FuncTy [RefTy (VarTy "p") (LifetimeVar (VarTy "q"))] (VarTy "p"))
    (const (toTemplate "$p $NAME($p* pRef)"))
    (const (tokensForCopy typeEnv env memberPairs))
    (\_ -> concatMap (depsOfPolymorphicFunction typeEnv env [] "copy" . typesCopyFunctionType)

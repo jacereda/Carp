@@ -221,7 +221,7 @@ instance Show TypeError where
     prettyInfoFromXObj (head xobjs) ++
     ".\n\nBecause they are pairs of names and their types, they need to be even.\nDid you forget a name or type?"
   show (InvalidLetBinding xobjs (sym, expr)) =
-    "The binding:` [" ++ pretty sym ++ " " ++ pretty expr ++ "]` is invalid at: " ++ 
+    "The binding:` [" ++ pretty sym ++ " " ++ pretty expr ++ "]` is invalid at: " ++
     prettyInfoFromXObj (head xobjs) ++ ". \n\n Because binding names must be symbols."
 
 
@@ -347,7 +347,6 @@ recursiveLookupTy mappings t = case t of
                                  (VarTy v) -> fromMaybe t (recursiveLookup mappings v)
                                  (RefTy r lt) -> RefTy (recursiveLookupTy mappings r) lifetime
                                    where lifetime = case lt of
-                                                      NoLifetime -> NoLifetime
                                                       LifetimeVar v -> LifetimeVar (recursiveLookupTy mappings v)
                                  (PointerTy p) -> PointerTy (recursiveLookupTy mappings p)
                                  (StructTy n innerTys) -> StructTy n (map (recursiveLookupTy mappings) innerTys)
