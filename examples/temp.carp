@@ -25,5 +25,10 @@
         r &s]
     (do
       (delete s)
-      (println* r))
+      (IO.println r))
     ))
+
+(defn this-must-work-still []
+  (do
+    (IO.println r))
+  )
