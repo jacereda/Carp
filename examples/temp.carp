@@ -18,3 +18,12 @@
 ;;   (match x
 ;;     (Maybe.Just a)  a
 ;;     (Maybe.Nothing) 0))
+
+;; The most basic problem with refs:
+(defn main []
+  (let [s @"Yo"
+        r &s]
+    (do
+      (delete s)
+      (println* r))
+    ))
