@@ -108,16 +108,26 @@
 ;;   (let [g f]
 ;;     (fn [] (Int.+ (g 1) 12345))))
 
-(def g @"")
+;; (def g @"")
 
-(defmodule Blah
-  (def s @"")
-  (defn f []
-    (let [t @""]
-      (do
-        (set! g @"C")
-        (set! t @"A")
-        (set! s @"B")))))
+;; (defmodule Blah
+;;   (def s @"")
+;;   (defn f []
+;;     (let [t @""]
+;;       (do
+;;         (set! g @"C")
+;;         (set! t @"A")
+;;         (set! s @"B")))))
+
+;; (defn main []
+;;   (Blah.f))
+
+(defn recurse [a]
+  (if (= a 0)
+    ;; We return an Int
+    0
+    ;; But treat the return value of the recursive call as &Int
+    (ref (recurse (dec a)))))
 
 (defn main []
-  (Blah.f))
+  (println* (recurse 1)))
