@@ -146,10 +146,12 @@ templateGenericSetter pathStrings originalStructTy@(StructTy typeName _) memberT
 -- | The template for mutating setters of a deftype.
 templateMutatingSetter :: TypeEnv -> Env -> String -> Ty -> Template
 templateMutatingSetter typeEnv env memberName memberTy =
-  Template
-    (FuncTy [RefTy (VarTy "p") (LifetimeVar (VarTy "q")), VarTy "t"] UnitTy)
+  let callToDelete = memberRefDeletion typeEnv env (memberName, memberTy)
+  in Template
+    (FuncTy [RefTy (VarTy "p"), (LifetimeVar (VarTy "q"))] UnitTy)
     (const (toTemplate "void $NAME($p* pRef, $t newValue)"))
     (const (toTemplate (unlines ["$DECL {"
+                                ,callToDelete
                                 ,"    pRef->" ++ memberName ++ " = newValue;"
                                 ,"}\n"])))
     (const [])

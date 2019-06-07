@@ -298,26 +298,6 @@
                 </p>
             </div>
             <div class="binder">
-                <a class="anchor" href="#empty">
-                    <h3 id="empty">
-                        empty
-                    </h3>
-                </a>
-                <div class="description">
-                    external
-                </div>
-                <p class="sig">
-                    a
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>Check whether the map m is empty.</p>
-
-                </p>
-            </div>
-            <div class="binder">
                 <a class="anchor" href="#empty?">
                     <h3 id="empty?">
                         empty?
@@ -333,7 +313,8 @@
                     (empty? m)
                 </pre>
                 <p class="doc">
-                    
+                    <p>Check whether the map m is empty.</p>
+
                 </p>
             </div>
             <div class="binder">
@@ -346,7 +327,7 @@
                     defn
                 </div>
                 <p class="sig">
-                    (λ [(λ [&amp;a, &amp;b] b), (Map a b)] (Map a b))
+                    (λ [(Ref (λ [&amp;a, &amp;b] b)), (Map a b)] (Map a b))
                 </p>
                 <pre class="args">
                     (endo-map f m)
@@ -366,7 +347,7 @@
                     defn
                 </div>
                 <p class="sig">
-                    (λ [(Ref (Map a b)), (λ [&amp;a, &amp;b] ())] ())
+                    (λ [(Ref (Map a b)), (Ref (λ [&amp;a, &amp;b] ()))] ())
                 </p>
                 <pre class="args">
                     (for-each m f)
@@ -506,7 +487,7 @@
                     defn
                 </div>
                 <p class="sig">
-                    (λ [(λ [a, &amp;b, &amp;c] a), a, (Ref (Map b c))] a)
+                    (λ [(Ref (λ [a, &amp;b, &amp;c] a)), a, (Ref (Map b c))] a)
                 </p>
                 <pre class="args">
                     (kv-reduce f init m)
@@ -593,6 +574,26 @@
                 </pre>
                 <p class="doc">
                     <p>Put a a value v into map m, using the key k.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#put!">
+                    <h3 id="put!">
+                        put!
+                    </h3>
+                </a>
+                <div class="description">
+                    defn
+                </div>
+                <p class="sig">
+                    (λ [(Ref (Map a b)), &amp;a, &amp;b] ())
+                </p>
+                <pre class="args">
+                    (put! m k v)
+                </pre>
+                <p class="doc">
+                    <p>Put a a value v into map m, using the key k, in place.</p>
 
                 </p>
             </div>
@@ -766,7 +767,7 @@
                     defn
                 </div>
                 <p class="sig">
-                    (λ [(Map a b), &amp;a, (λ [b] b)] (Map a b))
+                    (λ [(Map a b), &amp;a, (Ref (λ [b] b))] (Map a b))
                 </p>
                 <pre class="args">
                     (update m k f)
@@ -826,7 +827,7 @@
                     defn
                 </div>
                 <p class="sig">
-                    (λ [(Map a b), &amp;a, (λ [b] b), b] (Map a b))
+                    (λ [(Map a b), &amp;a, (Ref (λ [b] b)), b] (Map a b))
                 </p>
                 <pre class="args">
                     (update-with-default m k f v)

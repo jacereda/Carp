@@ -199,15 +199,19 @@ eval env xobj =
                  let okBindings = sequence bind
                  case okBindings of
                    (Left err) -> return (Left err)
-                   Right binds -> do
-                     let envWithBindings = foldl' (\e [XObj (Sym (SymPath _ n) _) _ _, x] -> extendEnv e n x)
-                                   innerEnv
-                                   binds
-                     evaledBody <- eval envWithBindings body
-                     return $ do okBody <- evaledBody
-                                 Right okBody
-
-
+                   Right binds ->
+                    case getDuplicate [] binds of
+                      Just dup -> return (makeEvalError ctx Nothing ("I encountered a duplicate binding `" ++ dup ++ "` inside a `let`") (info xobj))
+                      Nothing -> do
+                       let envWithBindings = foldl' (\e [XObj (Sym (SymPath _ n) _) _ _, x] -> extendEnv e n x)
+                                     innerEnv
+                                     binds
+                       evaledBody <- eval envWithBindings body
+                       return $ do okBody <- evaledBody
+                                   Right okBody
+          where getDuplicate _ [] = Nothing
+                getDuplicate names ([XObj (Sym (SymPath _ x) _) _ _,y]:xs) =
+                  if x `elem` names then Just x else getDuplicate (x:names) xs
 
         XObj (Sym (SymPath [] "register-type") _) _ _ : XObj (Sym (SymPath _ typeName) _) _ _ : rest ->
           specialCommandRegisterType typeName rest
@@ -269,13 +273,17 @@ eval env xobj =
         XObj (Sym (SymPath [] "type") _) _ _ : _ ->
           return (makeEvalError ctx Nothing ("Invalid args to `type`: " ++ pretty xobj) (info xobj))
 
-        [XObj (Sym (SymPath [] "meta-set!") _) _ _, target@(XObj (Sym path @(SymPath _ name) _) _ _), XObj (Str key) _ _, value] ->
-          specialCommandMetaSet path key value
+        [XObj (Sym (SymPath [] "meta-set!") _) _ _, target@(XObj (Sym path @(SymPath _ name) _) _ _), XObj (Str key) _ _, value] -> do
+            specialCommandMetaSet path key value
         XObj (Sym (SymPath [] "meta-set!") _) _ _ : _ ->
           return (makeEvalError ctx Nothing ("Invalid args to `meta-set!`: " ++ pretty xobj) (info xobj))
 
-        [XObj (Sym (SymPath [] "meta") _) _ _, target@(XObj (Sym path @(SymPath _ name) _) _ _), XObj (Str key) _ _] ->
-          specialCommandMetaGet path key
+        [XObj (Sym (SymPath [] "meta") _) _ _, target@(XObj (Sym path @(SymPath _ name) _) _ _), XObj (Str key) _ _] -> do
+            -- make sure we resolve all variables
+            p <- eval env target
+            case p of
+              Right (XObj (Sym newPath _) _ _) -> specialCommandMetaGet newPath key
+              _ -> specialCommandMetaGet path key
         XObj (Sym (SymPath [] "meta") _) _ _ : _ ->
           return (makeEvalError ctx Nothing ("Invalid args to `meta`: " ++ pretty xobj) (info xobj))
 
@@ -563,7 +571,7 @@ define hidden ctx@(Context globalEnv typeEnv _ proj _ _) annXObj =
               Nothing ->
                 return ()
             when (projectEchoC proj) $
-              putStrLn (toC All annXObj)
+              putStrLn (toC All (Binder emptyMeta annXObj))
             case previousType of
               Just previousTypeUnwrapped ->
                 unless (areUnifiable (forceTy annXObj) previousTypeUnwrapped) $
@@ -701,7 +709,10 @@ deftypeInternal nameXObj typeName typeVariableXObjs rest =
          preExistingModule = case lookupInEnv (SymPath pathStrings typeName) env of
                                Just (_, Binder _ (XObj (Mod found) _ _)) -> Just found
                                _ -> Nothing
-         (creatorFunction, typeConstructor) = if length rest == 1 then (moduleForDeftype, Typ) else (moduleForSumtype, DefSumtype)
+         (creatorFunction, typeConstructor) =
+            if length rest == 1 && isArray (head rest)
+            then (moduleForDeftype, Typ)
+            else (moduleForSumtype, DefSumtype)
      case (nameXObj, typeVariables) of
        (XObj (Sym (SymPath _ typeName) _) i _, Just okTypeVariables) ->
          case creatorFunction typeEnv env pathStrings typeName okTypeVariables rest i preExistingModule of
@@ -1218,7 +1229,7 @@ printC xobj =
     Left e ->
       putStrLnWithColor Red (show e ++ ", can't print resulting code.\n")
     Right _ ->
-      putStrLnWithColor Green (toC All xobj)
+      putStrLnWithColor Green (toC All (Binder emptyMeta xobj))
 
 -- | This allows execution of calls to non-dynamic functions (defined with 'defn') to be run from the REPL
 executeFunctionAsMain :: Context -> XObj -> StateT Context IO (Either EvalError XObj)

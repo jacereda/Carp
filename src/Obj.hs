@@ -476,6 +476,10 @@ pathToEnv rootEnv = visit rootEnv
 showImportIndented :: Int -> SymPath -> String
 showImportIndented indent path = replicate indent ' ' ++ " * " ++ show path
 
+incrementEnvNestLevel :: Env -> Env
+incrementEnvNestLevel env = let current = envFunctionNestingLevel env
+                            in env { envFunctionNestingLevel = current + 1 }
+
 -- | Project (represents a lot of useful information for working at the REPL and building executables)
 data Project = Project { projectTitle :: String
                        , projectIncludes :: [Includer]
@@ -783,3 +787,11 @@ isUnqualifiedSym _ = False
 isSym :: XObj -> Bool
 isSym (XObj (Sym (SymPath _ _) _) _ _) = True
 isSym _ = False
+
+isArray :: XObj -> Bool
+isArray (XObj (Arr _) _ _) = True
+isArray _ = False
+
+-- construct an empty list xobj
+emptyList :: XObj
+emptyList = XObj (Lst []) Nothing Nothing

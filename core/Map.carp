@@ -131,6 +131,13 @@
         (let [n (Array.nth &b idx)]
           (Array.aset b idx (Bucket.put @n k v)))))))
 
+  (doc put! "Put a a value v into map m, using the key k, in place.")
+  (defn put! [m k v]
+    (let [idx (Int.positive-mod (hash k) @(n-buckets m))
+          b (buckets m)
+          n (Array.nth b idx)]
+      (Array.aset! b idx (Bucket.put @n k v))))
+
   (doc get-with-default "Get the value for the key k from map m. If it isn’t found, the default is returned.")
   (defn get-with-default [m k default-value]
     (let [idx (Int.positive-mod (hash k) @(n-buckets m))]
@@ -153,7 +160,7 @@
               i (Bucket.find n k)]
           (if (<= 0 i)
             ;; currently can't write a Bucket.update that takes f due to bug #347
-            (Array.aset b idx (Bucket.set-idx @n i &(f (Bucket.get-idx n i))))
+            (Array.aset b idx (Bucket.set-idx @n i &(~f (Bucket.get-idx n i))))
             b))))))
 
   (doc update-with-default "Update value at key k in map with function f. If k doesn't exist in map, set k to (f v).")
@@ -163,8 +170,8 @@
         (let [n (Array.nth &b idx)
               i (Bucket.find n k)]
           (if (<= 0 i)
-            (Array.aset b idx (Bucket.set-idx @n i &(f (Bucket.get-idx n i))))
-            (Array.aset b idx (Bucket.push-back @n k &(f v)))))))))
+            (Array.aset b idx (Bucket.set-idx @n i &(~f (Bucket.get-idx n i))))
+            (Array.aset b idx (Bucket.push-back @n k &(~f v)))))))))
 
   (doc length "Get the length of the map m.")
   (defn length [m]
@@ -173,7 +180,7 @@
         (set! c (+ c (Array.length (Bucket.entries (Array.nth (buckets m) i))))))
       c))
 
-  (doc empty "Check whether the map m is empty.")
+  (doc empty? "Check whether the map m is empty.")
   (defn empty? [m]
     (= (length m) 0))
 
@@ -215,7 +222,7 @@
             entries (Bucket.entries bucket)]
         (for [j 0 len]
           (let [e (Array.nth entries j)]
-            (f (Pair.a e) (Pair.b e)))))))
+            (~f (Pair.a e) (Pair.b e)))))))
 
   (doc endo-map "Transform values of the given map in place. f gets two arguments, key and value, and should return new value")
   (defn endo-map [f m]
@@ -227,7 +234,7 @@
           (for [j 0 len]
             (let [e (Array.nth entries j)]
               (Array.aset! entries j (Pair.init @(Pair.a e)
-                                                (f (Pair.a e) (Pair.b e))))))))
+                                                (~f (Pair.a e) (Pair.b e))))))))
       m))
 
   (doc kv-reduce "Reduce a map with a function of three arguments: state, key and value. Reduction order is not guaranteed.")
@@ -239,18 +246,18 @@
               entries (Bucket.entries bucket)]
           (for [j 0 len]
             (let [e (Array.nth entries j)]
-              (set! init (f init (Pair.a e) (Pair.b e)))))))
+              (set! init (~f init (Pair.a e) (Pair.b e)))))))
       init))
 
   (doc vals "Return an array of the values of the map. Order corresponds to order of (keys m)")
   (defn vals [m]
-    (kv-reduce (fn [arr _ v] (Array.push-back arr @v))
+    (kv-reduce &(fn [arr _ v] (Array.push-back arr @v))
                []
                m))
 
   (doc keys "Return an array of the keys of the map. Order corresponds to order of (vals m)")
   (defn keys [m]
-    (kv-reduce (fn [arr k _] (Array.push-back arr @k))
+    (kv-reduce &(fn [arr k _] (Array.push-back arr @k))
                []
                m))
 
@@ -266,12 +273,12 @@
 
   (doc to-array "Convert Map to Array of Pairs")
   (defn to-array [m]
-    (kv-reduce (fn [arr k v] (Array.push-back arr (Pair.init-from-refs k v)))
+    (kv-reduce &(fn [arr k v] (Array.push-back arr (Pair.init-from-refs k v)))
                []
                m))
 
   (defn str [m]
-    (let [res (kv-reduce (fn [s k v]
+    (let [res (kv-reduce &(fn [s k v]
                            (String.join @"" &[s @" " (prn @k) @" " (prn @v)]))
                          @"{"
                          m)]
@@ -339,6 +346,14 @@
             b
             (Array.aset b idx (SetBucket.grow n @k))))))))
 
+  (doc put! "Put a a key k into the set s, in place.")
+  (defn put! [s k]
+    (let [idx (Int.positive-mod (hash k) @(n-buckets s))
+          b (buckets s)
+          n (Array.nth b idx)]
+      (when (not (SetBucket.contains? n k))
+        (Array.aset! b idx (SetBucket.grow n @k)))))
+
   (doc length "Get the length of set s.")
   (defn length [s]
     (let-do [c 0]
@@ -389,7 +404,7 @@
             entries (SetBucket.entries bucket)]
         (for [j 0 len]
           (let [e (Array.nth entries j)]
-            (f e))))))
+            (~f e))))))
 
   (doc from-array "Create a set from the values in array a.")
   (defn from-array [a]
@@ -408,33 +423,33 @@
               entries (SetBucket.entries bucket)]
           (for [j 0 len]
             (let [e (Array.nth entries j)]
-              (set! init (f init e))))))
+              (set! init (~f init e))))))
       init))
 
   (doc intersection "Set of elements that are in both set-a and set-b")
   (defn intersection [set-a set-b]
-    (reduce (fn [s a] (if (Set.contains? set-b a) (Set.put s a) s))
+    (reduce &(fn [s a] (if (Set.contains? set-b a) (Set.put s a) s))
             (Set.create)
             set-a))
 
   (doc union "Set of elements that are in either set-a or set-b (or both)")
   (defn union [set-a set-b]
-    (reduce Set.put
+    (reduce &Set.put
             @set-a
             set-b))
 
   (doc difference "Set of elements that are in set-a but not set-b")
   (defn difference [set-a set-b]
-    (reduce Set.remove
+    (reduce &Set.remove
             @set-a
             set-b))
 
   (doc to-array "Convert Set to Array of elements")
   (defn to-array [s]
-    (reduce (fn [arr elt] (Array.push-back arr @elt)) [] s))
+    (reduce &(fn [arr elt] (Array.push-back arr @elt)) [] s))
 
   (defn str [set]
-    (let [res (reduce (fn [s e] (String.join @"" &[s @" " (prn e)]))
+    (let [res (reduce &(fn [s e] (String.join @"" &[s @" " (prn e)]))
                       @"{"
                       set)]
       (String.append &res " }")))
