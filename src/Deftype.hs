@@ -148,7 +148,7 @@ templateMutatingSetter :: TypeEnv -> Env -> String -> Ty -> Template
 templateMutatingSetter typeEnv env memberName memberTy =
   let callToDelete = memberRefDeletion typeEnv env (memberName, memberTy)
   in Template
-    (FuncTy [RefTy (VarTy "p"), (LifetimeVar (VarTy "q"))] UnitTy)
+    (FuncTy [RefTy (VarTy "p") (LifetimeVar (VarTy "q"))] UnitTy)
     (const (toTemplate "void $NAME($p* pRef, $t newValue)"))
     (const (toTemplate (unlines ["$DECL {"
                                 ,callToDelete
