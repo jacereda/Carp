@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Parsing (parse, validCharacters, balance) where
+module Parsing (parse, validCharacters, balance, parseTarget) where
 
 import Data.Bits (shift)
 import Numeric (readHex)
@@ -12,6 +12,7 @@ import qualified Data.Set as Set
 import qualified Data.Map as Map
 import Data.Char (ord)
 import Obj
+import Project
 import Types
 import Util
 import Info
@@ -526,3 +527,10 @@ balance text =
                '[' -> Parsec.putState (c : parens)
                '"' -> Parsec.putState (c : parens)
                _ -> return ()
+
+parseTarget :: String -> Either Parsec.ParseError Target
+parseTarget = Parsec.parse target "(config)"
+  where target = Parsec.string "native" *> pure Native
+          <|> Triple <$> symbol_ <*> symbol_ <*> symbol
+        symbol = Parsec.many1 (Parsec.noneOf ['-'])
+        symbol_ = symbol <* Parsec.char '-'

@@ -130,6 +130,10 @@ commandProjectConfig ctx [xobj@(XObj (Str key) _ _), value] = do
                        return (proj { projectBalanceHints = balanceHints })
                   "force-reload" -> do forceReload <- unwrapBoolXObj value
                                        return (proj { projectForceReload = forceReload })
+                  "target" -> do starget <- unwrapStringXObj value
+                                 case parseTarget starget of
+                                   Right target -> Right $ proj { projectTarget = target }
+                                   Left err -> Left $ "Parsing target: " ++ show err
                   _ -> Left ("Project.config can't understand the key '" ++ key ++ "' at " ++ prettyInfoFromXObj xobj ++ ".")
   case newProj of
     Left errorMessage -> presentError ("[CONFIG ERROR] " ++ errorMessage) (ctx, dynamicNil)
@@ -143,6 +147,7 @@ commandProjectGetConfig ctx [xobj@(XObj (Str key) _ _)] =
   let proj = contextProj ctx
       env = contextGlobalEnv ctx
       xstr s = XObj s (Just dummyInfo) (Just StringTy)
+      xsym s = XObj (Sym (SymPath [] s) Symbol) (Just dummyInfo) (Just StringTy)
       getVal ctx proj = case key of
           "cflag" -> Right $ Str $ show $ projectCFlags proj
           "libflag" -> Right $ Str $ show $ projectLibFlags proj
@@ -164,6 +169,9 @@ commandProjectGetConfig ctx [xobj@(XObj (Str key) _ _)] =
           "file-path-print-length" -> Right $ Str $ show (projectFilePathPrintLength proj)
           "generate-only" -> Right $ Bol $ projectGenerateOnly proj
           "paren-balance-hints" -> Right $ Bol $ projectBalanceHints proj
+          "target" -> Right $ Arr $ xsym <$> case projectTarget proj of
+            Native -> replicate 3 "native"
+            Triple os cpu abi -> [ os , cpu , abi ]
           _ -> Left key
   in case getVal ctx proj of
        Right val -> return (ctx, Right $ xstr val)

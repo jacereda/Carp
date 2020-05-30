@@ -42,11 +42,9 @@ to non-refs.")
   (implements to-int Long.to-int)
   (implements from-int Long.from-int)
 
-  (not-on-windows ; this seems to generate invalid code on some windows machines
-    (register safe-add (λ [Long Long (Ref Long)] Bool))
-    (register safe-sub (λ [Long Long (Ref Long)] Bool))
-    (register safe-mul (λ [Long Long (Ref Long)] Bool))
-  )
+  (register safe-add (λ [Long Long (Ref Long)] Bool))
+  (register safe-sub (λ [Long Long (Ref Long)] Bool))
+  (register safe-mul (λ [Long Long (Ref Long)] Bool))
 
   (register abs (λ [Long] Long))
 

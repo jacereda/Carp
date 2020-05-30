@@ -59,6 +59,7 @@ defaultProject =
           , projectGenerateOnly = False
           , projectForceReload = False
           , projectPkgConfigFlags = []
+          , projectTarget = Native
           }
 
 -- | Starting point of the application.

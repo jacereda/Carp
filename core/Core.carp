@@ -50,8 +50,7 @@
 (load-once "Binary.carp")
 (load-once "Control.carp")
 
-(not-on-windows
+(posix-only
   (system-include "sys/wait.h")
-  (system-include "unistd.h"))
-(freebsd-only
+  (system-include "unistd.h")
   (system-include "signal.h"))

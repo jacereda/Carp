@@ -588,31 +588,6 @@ For example:
 (defmacro update! [x f]
   (list 'set! x (list f x)))
 
-(defmacro freebsd-only [:rest forms]
-  (if (= "freebsd" (os))
-    (eval (cons (quote do) forms))
-    ()))
-
-(defmacro mac-only [:rest forms]
-  (if (= "darwin" (os))
-    (eval (cons (quote do) forms))
-    ()))
-
-(defmacro linux-only [:rest forms]
-  (if (= "linux" (os))
-    (eval (cons (quote do) forms))
-    ()))
-
-(defmacro windows-only [:rest forms]
-  (if (or (= "windows" (os)) (= "mingw32" (os)))
-    (eval (cons (quote do) forms))
-    ()))
-
-(defmacro not-on-windows [:rest forms]
-  (if (not (or (= "windows" (os)) (= "mingw32" (os))))
-    (eval (cons (quote do) forms))
-    ()))
-
 (defndynamic use-all-fn [names]
   (if (= (length names) 0)
     (macro-error "Trying to call use-all without arguments")
@@ -632,6 +607,9 @@ For example:
 
 (defmacro when [condition form]
   (list 'if condition form (list)))
+
+(defmacro when-do [condition :rest forms]
+  (list 'when condition (cons 'do forms)))
 
 (defmacro unless [condition form]
   (list 'if condition (list) form))
@@ -758,3 +736,48 @@ The expression must be evaluable at compile time.")
 (doc inline-c "inlines some custom C code.")
 (defmacro inline-c [name defcode declcode]
   (list 'deftemplate name (list) (eval defcode) (eval declcode)))
+
+(doc target-os "returns a symbol describing the target OS.")
+(defndynamic target-os []
+  (cadr (Project.get-config "target")))
+
+(doc is-target-os "checks whether the target OS is `tgt`")
+(defndynamic is-target-os [tgt]
+  (= (target-os) tgt))
+
+(doc windows-target? "checks if the target OS is Windows.")
+(defndynamic windows-target? []
+  (or (is-target-os 'windows)
+      (is-target-os 'mingw32)))
+
+(doc linux-target? "checks if the target OS is Linux.")
+(defndynamic linux-target? []
+  (is-target-os 'linux))
+
+(doc mac-target? "checks if the target OS is macOS.")
+(defndynamic mac-target? []
+  (is-target-os 'darwin))
+
+(doc posix-target? "checks if the target OS is a POSIX OS?")
+(defndynamic posix-target? []
+  (not (windows-target?)))
+
+(doc only-when "evaluates `forms` only when `condition` is true.")
+(defndynamic only-when [condition :rest forms]
+  (when-do condition forms))
+
+(doc mac-only "evaluates `forms` only when the target OS is macOS")
+(defmacro mac-only [:rest forms]
+  (only-when (mac-target?) forms))
+
+(doc linux-only "evaluates `forms` only when the target OS is Linux")
+(defmacro linux-only [:rest forms]
+  (only-when (linux-target?) forms))
+
+(doc windows-only "evaluates `forms` only when the target OS is Windows")
+(defmacro windows-only [:rest forms]
+  (only-when (windows-target?) forms))
+
+(doc posix-only "evaluates `forms` only when the target OS is a POSIX OS")
+(defmacro posix-only [:rest forms]
+  (only-when (posix-target?) forms))

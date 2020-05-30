@@ -3,6 +3,7 @@ module Project where
 
 import Info
 import Util
+import Text.Parsec as Parsec
 
 -- | Project (represents a lot of useful information for working at the REPL and building executables)
 data Project = Project { projectTitle :: String
@@ -33,6 +34,7 @@ data Project = Project { projectTitle :: String
                        , projectGenerateOnly :: Bool
                        , projectBalanceHints :: Bool
                        , projectForceReload :: Bool -- Setting this to true will make the `load-once` command work just like `load`.
+                       , projectTarget :: Target
                        }
 
 projectFlags :: Project -> String
@@ -68,6 +70,7 @@ instance Show Project where
             , "Generate Only: " ++ showB projectGenerateOnly
             , "Balance Hints: " ++ showB projectBalanceHints
             , "Force Reload: " ++ showB projectForceReload
+            , "Target: " ++ show projectTarget
             ]
     where showB b = if b then "true" else "false"
           joinIndented = joinWith "\n    "
@@ -88,3 +91,10 @@ data ReloadMode = DoesReload | Frozen deriving Show
 showLoader :: (FilePath, ReloadMode) -> String
 showLoader (fp, DoesReload) = fp
 showLoader (fp, Frozen) = fp ++ " (frozen)"
+
+
+data Target = Native | Triple String String String
+
+instance Show Target where
+  show Native = "native"
+  show (Triple cpu os abi) = cpu ++ "-" ++ os ++ "-" ++ abi
