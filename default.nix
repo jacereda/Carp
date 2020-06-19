@@ -9,7 +9,6 @@ let
   inherit (nixpkgs) pkgs;
 
   optionals = nixpkgs.stdenv.lib.optionals;
-  linuxOnly = optionals nixpkgs.stdenv.isLinux;
 
   f = { mkDerivation, stdenv
       , ansi-terminal, base, blaze-html, blaze-markup
@@ -38,7 +37,7 @@ let
         ] ++ optionals profiling [ ghc-prof-flamegraph ];
         pkgconfigDepends =
           [ glfw3 SDL2 SDL2_image SDL2_gfx SDL2_mixer SDL2_ttf ]
-          ++ linuxOnly [ libXext libXcursor libXinerama libXi libXrandr libXScrnSaver libXxf86vm libpthreadstubs libXdmcp libGL];
+          ++ optionals stdenv.isLinux [ libXext libXcursor libXinerama libXi libXrandr libXScrnSaver libXxf86vm libpthreadstubs libXdmcp libGL];
         executableHaskellDepends = [
           base containers directory haskeline optparse-applicative parsec process
           clang
@@ -69,11 +68,4 @@ let
 
   drv = variant (haskellPackages.callPackage f {});
 
-in
-
-  if pkgs.lib.inNixShell
-  then drv.env.overrideAttrs (o: {
-    buildInputs = with pkgs; o.buildInputs ++ [ haskellPackages.cabal-install clang gdb ]
-                  ++ linuxOnly [ flamegraph linuxPackages.perf tinycc ];
-  })
-  else drv
+in drv
